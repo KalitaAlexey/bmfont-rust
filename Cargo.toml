@@ -3,6 +3,8 @@ name = "bmfont"
 version = "0.1.0"
 authors = ["kalita.alexey <kalita.alexey@outlook.com>"]
 description = "bitmap font config parser"
+repository = "https://github.com/KalitaAlexey/bmfont-rust"
+keywords = ["bitmap", "font"]
 
 [dev-dependencies]
 glium = "*"
