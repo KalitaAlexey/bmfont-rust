@@ -1,0 +1,9 @@
+[package]
+name = "bmfont"
+version = "0.1.0"
+authors = ["kalita.alexey <kalita.alexey@outlook.com>"]
+description = "bitmap font config parser"
+
+[dev-dependencies]
+glium = "*"
+image = "*"
