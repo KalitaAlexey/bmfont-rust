@@ -2,6 +2,7 @@ use std::io::Read;
 use super::{Error, ConfigParseError};
 
 pub struct Sections {
+    pub common_section: String,
     pub page_sections: Vec<String>,
     pub char_sections: Vec<String>,
     pub kerning_sections: Vec<String>,
@@ -17,6 +18,12 @@ impl Sections {
         if !lines.next().map(|l| l.starts_with("info")).unwrap_or(false) {
             return Err(Error::from(ConfigParseError::MissingSection(String::from("info"))));
         }
+
+        let common_section = match lines.next() {
+            Some(line) if line.starts_with("common") => line.to_owned(),
+            _ => return Err(Error::from(ConfigParseError::MissingSection(String::from("common"))))
+        };
+
         let lines = lines.skip_while(|l| !l.starts_with("page"))
                          .collect::<Vec<_>>();
         let lines = lines.iter();
@@ -43,6 +50,7 @@ impl Sections {
                                     .map(|s| s.to_string())
                                     .collect::<Vec<_>>();
         Ok(Sections {
+            common_section: common_section,
             page_sections: page_sections,
             char_sections: char_sections,
             kerning_sections: kerning_sections,
