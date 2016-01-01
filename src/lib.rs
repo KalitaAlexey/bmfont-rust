@@ -23,17 +23,20 @@ use self::kerning_value::KerningValue;
 use self::page::Page;
 use self::sections::Sections;
 
+#[derive(Debug)]
 pub struct CharPosition {
     pub page_rect: Rect,
     pub screen_rect: Rect,
     pub page_index: u32,
 }
 
+#[derive(Debug)]
 pub enum OrdinateOrientation {
     BottomToTop,
     TopToBottom,
 }
 
+#[derive(Debug)]
 pub struct BMFont {
     line_height: u32,
     characters: Vec<Char>,
