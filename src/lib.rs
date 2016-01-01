@@ -114,7 +114,7 @@ impl BMFont {
                 let screen_x = x + character.xoffset + kerning_value;
                 let screen_y = match self.ordinate_orientation {
                     OrdinateOrientation::BottomToTop => {
-                        y + self.line_height as i32 - character.yoffset - character.height as i32
+                        y + self.base_height as i32 - character.yoffset - character.height as i32
                     }
                     OrdinateOrientation::TopToBottom => y + character.yoffset,
                 };
