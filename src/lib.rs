@@ -38,6 +38,7 @@ pub enum OrdinateOrientation {
 
 #[derive(Debug)]
 pub struct BMFont {
+    base_height: u32,
     line_height: u32,
     characters: Vec<Char>,
     kerning_values: Vec<KerningValue>,
@@ -50,6 +51,16 @@ impl BMFont {
         where R: Read
     {
         let sections = try!(Sections::new(source));
+
+        let base_height;
+        let line_height;
+        {
+            let mut components = sections.common_section.split_whitespace();
+            components.next();
+            line_height = try!(utils::extract_component_value(components.next(), "common", "lineHeight"));
+            base_height = try!(utils::extract_component_value(components.next(), "common", "base"));
+        }
+
         let mut pages = Vec::new();
         for page_section in &sections.page_sections {
             pages.push(try!(Page::new(page_section)));
@@ -63,12 +74,18 @@ impl BMFont {
             kerning_values.push(try!(KerningValue::new(kerning_section)));
         }
         Ok(BMFont {
-            line_height: 80,
+            base_height: base_height,
+            line_height: line_height,
             characters: characters,
             kerning_values: kerning_values,
             pages: pages,
             ordinate_orientation: ordinate_orientation,
         })
+    }
+
+    /// Returns the height of a `EM` in pixels.
+    pub fn base_height(&self) -> u32 {
+        self.base_height
     }
 
     pub fn line_height(&self) -> u32 {
@@ -100,7 +117,7 @@ impl BMFont {
                 let screen_x = x + character.xoffset + kerning_value;
                 let screen_y = match self.ordinate_orientation {
                     OrdinateOrientation::BottomToTop => {
-                        y + self.line_height as i32 - character.yoffset - character.height as i32
+                        y + self.base_height as i32 - character.yoffset - character.height as i32
                     }
                     OrdinateOrientation::TopToBottom => y + character.yoffset,
                 };
