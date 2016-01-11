@@ -1,4 +1,5 @@
 /// Rectangle
+#[derive(Debug)]
 pub struct Rect {
     /// Minimum x
     pub x: i32,

@@ -4,6 +4,7 @@ use super::{ConfigParseError, utils};
 
 const SECTION_NAME: &'static str = "page";
 
+#[derive(Debug)]
 pub struct Page {
     pub id: u32,
     pub file: String,
