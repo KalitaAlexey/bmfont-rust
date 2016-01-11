@@ -8,5 +8,5 @@ repository = "https://github.com/KalitaAlexey/bmfont-rust"
 keywords = ["bitmap", "font"]
 
 [dev-dependencies]
-glium = "*"
-image = "*"
+glium = "0.13"
+image = "0.6"
