@@ -1,7 +1,5 @@
 //! Parser for bitmap fonts
 
-#![feature(unicode)]
-
 mod char;
 mod config_parse_error;
 mod error;
@@ -163,9 +161,8 @@ impl BMFont {
                 unsupported_characters.push(c);
                 continue;
             }
-            let mut buffer: [u16; 4] = [0, 0, 0, 0];
-            c.encode_utf16(&mut buffer).unwrap();
-            let char_id = buffer[0] as u32;
+            let tmp_str = { let mut t = String::new(); t.push(c); t };
+            let char_id = tmp_str.encode_utf16().next().unwrap() as u32;
             if let Some(c) = self.characters.iter().find(|c| c.id == char_id) {
                 line.push(c);
             } else {
