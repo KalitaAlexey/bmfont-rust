@@ -1,3 +1,5 @@
+![crates.io](https://img.shields.io/crates/v/bmfont.svg)
+
 # bmfont-rust
 Bitmap font config parser implemented in Rust
 # Contributing
