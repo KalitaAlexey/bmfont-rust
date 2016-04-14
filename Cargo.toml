@@ -1,12 +1,20 @@
 [package]
 name = "bmfont"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["kalita.alexey <kalita.alexey@outlook.com>"]
 description = "bitmap font config parser"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/KalitaAlexey/bmfont-rust"
 keywords = ["bitmap", "font"]
 
+exclude = [
+    "examples/*",
+    "tests/*",
+    "*.fnt",
+    "*.png",
+]
+
 [dev-dependencies]
 glium = "0.13"
 image = "0.6"
+
