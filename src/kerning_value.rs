@@ -4,7 +4,7 @@ use super::{ConfigParseError, utils};
 
 const SECTION_NAME: &'static str = "kerning";
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct KerningValue {
     pub first_char_id: u32,
     pub second_char_id: u32,

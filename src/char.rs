@@ -4,7 +4,7 @@ use super::{ConfigParseError, utils};
 
 const SECTION_NAME: &'static str = "char";
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Char {
     pub id: u32,
     pub x: u32,

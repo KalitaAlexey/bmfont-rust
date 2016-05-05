@@ -1,6 +1,7 @@
 use std::io::Read;
 use super::{Error, ConfigParseError};
 
+#[derive(Clone, Debug)]
 pub struct Sections {
     pub common_section: String,
     pub page_sections: Vec<String>,
