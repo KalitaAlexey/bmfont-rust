@@ -1,6 +1,6 @@
 [package]
 name = "bmfont"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["kalita.alexey <kalita.alexey@outlook.com>"]
 description = "bitmap font config parser"
 license = "MIT OR Apache-2.0"
