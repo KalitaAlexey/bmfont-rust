@@ -15,6 +15,6 @@ exclude = [
 ]
 
 [dev-dependencies]
-glium = "0.13"
-image = "0.6"
+glium = "^0.16.0"
+image = "^0.10.3"
 
