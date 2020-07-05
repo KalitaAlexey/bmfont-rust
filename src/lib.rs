@@ -15,11 +15,11 @@ pub use self::error::Error;
 pub use self::rect::Rect;
 pub use self::string_parse_error::StringParseError;
 
-use std::io::Read;
 use self::char::Char;
 use self::kerning_value::KerningValue;
 use self::page::Page;
 use self::sections::Sections;
+use std::io::Read;
 
 #[derive(Clone, Debug)]
 pub struct CharPosition {
@@ -46,38 +46,40 @@ pub struct BMFont {
 
 impl BMFont {
     pub fn new<R>(source: R, ordinate_orientation: OrdinateOrientation) -> Result<BMFont, Error>
-        where R: Read
+    where
+        R: Read,
     {
-        let sections = try!(Sections::new(source));
+        let sections = Sections::new(source)?;
 
         let base_height;
         let line_height;
         {
             let mut components = sections.common_section.split_whitespace();
             components.next();
-            line_height = try!(utils::extract_component_value(components.next(), "common", "lineHeight"));
-            base_height = try!(utils::extract_component_value(components.next(), "common", "base"));
+            line_height =
+                utils::extract_component_value(components.next(), "common", "lineHeight")?;
+            base_height = utils::extract_component_value(components.next(), "common", "base")?;
         }
 
         let mut pages = Vec::new();
         for page_section in &sections.page_sections {
-            pages.push(try!(Page::new(page_section)));
+            pages.push(Page::new(page_section)?);
         }
         let mut characters = Vec::new();
         for char_section in &sections.char_sections {
-            characters.push(try!(Char::new(char_section)));
+            characters.push(Char::new(char_section)?);
         }
         let mut kerning_values = Vec::new();
         for kerning_section in &sections.kerning_sections {
-            kerning_values.push(try!(KerningValue::new(kerning_section)));
+            kerning_values.push(KerningValue::new(kerning_section)?);
         }
         Ok(BMFont {
-            base_height: base_height,
-            line_height: line_height,
-            characters: characters,
-            kerning_values: kerning_values,
-            pages: pages,
-            ordinate_orientation: ordinate_orientation,
+            base_height,
+            line_height,
+            characters,
+            kerning_values,
+            pages,
+            ordinate_orientation,
         })
     }
 
@@ -95,17 +97,18 @@ impl BMFont {
     }
 
     pub fn parse(&self, s: &str) -> Result<Vec<CharPosition>, StringParseError> {
-        let lines = try!(self.parse_lines(s));
+        let lines = self.parse_lines(s)?;
         let mut char_positions = Vec::new();
         let mut y: i32 = 0;
         for line in lines {
             let mut x: i32 = 0;
             let mut kerning_values: Vec<&KerningValue> = Vec::new();
             for character in line {
-                let kerning_value = kerning_values.into_iter()
-                                                  .find(|k| k.second_char_id == character.id)
-                                                  .map(|k| k.value)
-                                                  .unwrap_or(0);
+                let kerning_value = kerning_values
+                    .into_iter()
+                    .find(|k| k.second_char_id == character.id)
+                    .map(|k| k.value)
+                    .unwrap_or(0);
                 let page_rect = Rect {
                     x: character.x as i32,
                     y: character.y as i32,
@@ -126,8 +129,8 @@ impl BMFont {
                     height: character.height,
                 };
                 let char_position = CharPosition {
-                    page_rect: page_rect,
-                    screen_rect: screen_rect,
+                    page_rect,
+                    screen_rect,
                     page_index: character.page_index,
                 };
                 char_positions.push(char_position);
@@ -143,7 +146,10 @@ impl BMFont {
     }
 
     fn find_kerning_values(&self, first_char_id: u32) -> Vec<&KerningValue> {
-        self.kerning_values.iter().filter(|k| k.first_char_id == first_char_id).collect()
+        self.kerning_values
+            .iter()
+            .filter(|k| k.first_char_id == first_char_id)
+            .collect()
     }
 
     fn parse_lines(&self, s: &str) -> Result<Vec<Vec<&Char>>, StringParseError> {
@@ -161,7 +167,11 @@ impl BMFont {
                 unsupported_characters.push(c);
                 continue;
             }
-            let tmp_str = { let mut t = String::new(); t.push(c); t };
+            let tmp_str = {
+                let mut t = String::new();
+                t.push(c);
+                t
+            };
             let char_id = tmp_str.encode_utf16().next().unwrap() as u32;
             if let Some(c) = self.characters.iter().find(|c| c.id == char_id) {
                 line.push(c);
@@ -176,8 +186,8 @@ impl BMFont {
             Ok(lines)
         } else {
             Err(StringParseError {
-                missing_characters: missing_characters,
-                unsupported_characters: unsupported_characters,
+                missing_characters,
+                unsupported_characters,
             })
         }
     }

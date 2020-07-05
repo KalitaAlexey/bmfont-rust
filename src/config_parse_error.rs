@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(Debug)]
 pub enum ConfigParseError {
@@ -21,42 +21,37 @@ pub enum ConfigParseError {
 
 impl Display for ConfigParseError {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        try!(write!(formatter, "Parse error. "));
+        write!(formatter, "Parse error. ")?;
         match *self {
             ConfigParseError::MissingSection(ref section) => {
                 write!(formatter, "Missing section = {}", section)
             }
             ConfigParseError::MissingComponent {
                 ref section,
-                ref component
-            } => {
-                write!(formatter,
-                       "Missing component = {} in section = {}",
-                       component,
-                       section)
-            }
+                ref component,
+            } => write!(
+                formatter,
+                "Missing component = {} in section = {}",
+                component, section
+            ),
             ConfigParseError::InvalidComponent {
                 ref section,
                 ref expected_component,
-                ref actual_component
-            } => {
-                write!(formatter,
-                       "Invalid component = {} in section = {}. Expected = {}",
-                       actual_component,
-                       section,
-                       expected_component)
-            }
+                ref actual_component,
+            } => write!(
+                formatter,
+                "Invalid component = {} in section = {}. Expected = {}",
+                actual_component, section, expected_component
+            ),
             ConfigParseError::InvalidComponentValue {
                 ref section,
                 ref component,
                 ref value,
-            } => {
-                write!(formatter,
-                       "Invalid component value = {} for component = {} in section = {}",
-                       value,
-                       component,
-                       section)
-            }
+            } => write!(
+                formatter,
+                "Invalid component value = {} for component = {} in section = {}",
+                value, component, section
+            ),
         }
     }
 }

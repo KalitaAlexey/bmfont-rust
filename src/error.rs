@@ -1,7 +1,7 @@
-use std::error::Error as StdError;
-use std::fmt::{Display, Formatter, Error as FmtError};
-use std::io::Error as IOError;
 use super::ConfigParseError;
+use std::error::Error as StdError;
+use std::fmt::{Display, Error as FmtError, Formatter};
+use std::io::Error as IOError;
 
 #[derive(Debug)]
 pub enum Error {

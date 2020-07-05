@@ -3,9 +3,9 @@ extern crate bmfont;
 extern crate glium;
 extern crate image;
 
-use std::io::Cursor;
 use bmfont::{BMFont, OrdinateOrientation};
 use glium::{Display, Program, VertexBuffer};
+use std::io::Cursor;
 
 fn create_program(display: &Display) -> Program {
     let vertex_shader_src = r#"
@@ -40,8 +40,8 @@ fn main() {
     let display = glium::glutin::WindowBuilder::new().build_glium().unwrap();
 
     let image = image::load(Cursor::new(&include_bytes!("../font.png")[..]), image::PNG)
-                    .unwrap()
-                    .to_rgba();
+        .unwrap()
+        .to_rgba();
     let image_dimensions = image.dimensions();
     println!("{:?}", image_dimensions);
     let image = glium::texture::RawImage2d::from_raw_rgba(image.into_raw(), image_dimensions);
@@ -55,44 +55,48 @@ fn main() {
 
     implement_vertex!(Vertex, position, tex_coords);
     let design_size = (1024.0, 768.0);
-    let bmfont = BMFont::new(Cursor::new(&include_bytes!("../font.fnt")[..]),
-                             OrdinateOrientation::BottomToTop)
-                     .unwrap();
+    let bmfont = BMFont::new(
+        Cursor::new(&include_bytes!("../font.fnt")[..]),
+        OrdinateOrientation::BottomToTop,
+    )
+    .unwrap();
     let char_positions = bmfont.parse("Hello\nmy\nfriend").unwrap();
     let shapes = char_positions.into_iter().map(|char_position| {
         let left_page_x = char_position.page_rect.x as f32 / image_dimensions.0 as f32;
         let right_page_x = char_position.page_rect.max_x() as f32 / image_dimensions.0 as f32;
         let top_page_y = char_position.page_rect.y as f32 / image_dimensions.1 as f32;
         let bottom_page_y = char_position.page_rect.max_y() as f32 / image_dimensions.1 as f32;
-        
+
         let left_screen_x = char_position.screen_rect.x as f32 / design_size.0 as f32;
         let right_screen_x = char_position.screen_rect.max_x() as f32 / design_size.0 as f32;
         let bottom_screen_y = char_position.screen_rect.y as f32 / design_size.1 as f32;
         let top_screen_y = char_position.screen_rect.max_y() as f32 / design_size.1 as f32;
-        vec![Vertex {
-                 position: [left_screen_x, bottom_screen_y],
-                 tex_coords: [left_page_x, bottom_page_y],
-             },
-             Vertex {
-                 position: [left_screen_x, top_screen_y],
-                 tex_coords: [left_page_x, top_page_y],
-             },
-             Vertex {
-                 position: [right_screen_x, top_screen_y],
-                 tex_coords: [right_page_x, top_page_y],
-             },
-             Vertex {
-                 position: [left_screen_x, bottom_screen_y],
-                 tex_coords: [left_page_x, bottom_page_y],
-             },
-             Vertex {
-                 position: [right_screen_x, top_screen_y],
-                 tex_coords: [right_page_x, top_page_y],
-             },
-             Vertex {
-                 position: [right_screen_x, bottom_screen_y],
-                 tex_coords: [right_page_x, bottom_page_y],
-             }]
+        vec![
+            Vertex {
+                position: [left_screen_x, bottom_screen_y],
+                tex_coords: [left_page_x, bottom_page_y],
+            },
+            Vertex {
+                position: [left_screen_x, top_screen_y],
+                tex_coords: [left_page_x, top_page_y],
+            },
+            Vertex {
+                position: [right_screen_x, top_screen_y],
+                tex_coords: [right_page_x, top_page_y],
+            },
+            Vertex {
+                position: [left_screen_x, bottom_screen_y],
+                tex_coords: [left_page_x, bottom_page_y],
+            },
+            Vertex {
+                position: [right_screen_x, top_screen_y],
+                tex_coords: [right_page_x, top_page_y],
+            },
+            Vertex {
+                position: [right_screen_x, bottom_screen_y],
+                tex_coords: [right_page_x, bottom_page_y],
+            },
+        ]
     });
     let mut vertex_buffers = Vec::new();
     for shape in shapes {
@@ -111,12 +115,15 @@ fn main() {
         target.clear_color(0.0, 0.0, 1.0, 1.0);
 
         for vertex_buffer in &vertex_buffers {
-            target.draw(vertex_buffer,
-                        &indices,
-                        &program,
-                        &uniforms,
-                        &draw_parameters)
-                  .unwrap();
+            target
+                .draw(
+                    vertex_buffer,
+                    &indices,
+                    &program,
+                    &uniforms,
+                    &draw_parameters,
+                )
+                .unwrap();
         }
         target.finish().unwrap();
 

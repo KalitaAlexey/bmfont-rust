@@ -1,7 +1,7 @@
 extern crate bmfont;
 
-use std::fs::File;
 use bmfont::{BMFont, CharPosition, OrdinateOrientation, Rect};
+use std::fs::File;
 
 const RUST_WORD: &'static str = "Rust";
 const UNDERSCORE_CHARACTER: &'static str = "_";
@@ -23,11 +23,12 @@ fn assert_rect_equal(rect: &Rect, another_rect: &Rect) {
     assert_eq!(rect.max_y(), another_rect.max_y());
 }
 
-fn assert_char_positions_equal(char_position: &CharPosition,
-                               another_char_position: &CharPosition) {
+fn assert_char_positions_equal(char_position: &CharPosition, another_char_position: &CharPosition) {
     assert_rect_equal(&char_position.page_rect, &another_char_position.page_rect);
-    assert_rect_equal(&char_position.screen_rect,
-                      &another_char_position.screen_rect);
+    assert_rect_equal(
+        &char_position.screen_rect,
+        &another_char_position.screen_rect,
+    );
     assert_eq!(char_position.page_index, another_char_position.page_index);
 }
 
@@ -103,11 +104,20 @@ fn page_rect_for_t() -> Rect {
 }
 
 fn page_rects_for_rust_word() -> Vec<Rect> {
-    vec![page_rect_for_capital_r(), page_rect_for_u(), page_rect_for_s(), page_rect_for_t()]
+    vec![
+        page_rect_for_capital_r(),
+        page_rect_for_u(),
+        page_rect_for_s(),
+        page_rect_for_t(),
+    ]
 }
 
 fn page_rects_for_you_word() -> Vec<Rect> {
-    vec![page_rect_for_capital_y(), page_rect_for_o(), page_rect_for_u()]
+    vec![
+        page_rect_for_capital_y(),
+        page_rect_for_o(),
+        page_rect_for_u(),
+    ]
 }
 
 fn screen_rect_for_capital_r_in_rust_word(y: i32) -> Rect {
@@ -147,10 +157,12 @@ fn screen_rect_for_t_in_rust_word(y: i32) -> Rect {
 }
 
 fn screen_rects_for_rust_word(ys: [i32; 4]) -> Vec<Rect> {
-    vec![screen_rect_for_capital_r_in_rust_word(ys[0]),
-         screen_rect_for_u_in_rust_word(ys[1]),
-         screen_rect_for_s_in_rust_word(ys[2]),
-         screen_rect_for_t_in_rust_word(ys[3])]
+    vec![
+        screen_rect_for_capital_r_in_rust_word(ys[0]),
+        screen_rect_for_u_in_rust_word(ys[1]),
+        screen_rect_for_s_in_rust_word(ys[2]),
+        screen_rect_for_t_in_rust_word(ys[3]),
+    ]
 }
 
 fn screen_rect_for_underscore(y: i32) -> Rect {
@@ -192,8 +204,8 @@ fn screen_rect_for_u_in_you_word(y: i32) -> Rect {
 fn assert_single_character_parsed_correctly(orientation: OrdinateOrientation, y: i32) {
     let char_positions = parse(UNDERSCORE_CHARACTER, orientation);
     assert_eq!(char_positions.len(), UNDERSCORE_CHARACTER.len());
-    let char_position = create_char_position(page_rect_for_underscore(),
-                                             screen_rect_for_underscore(y));
+    let char_position =
+        create_char_position(page_rect_for_underscore(), screen_rect_for_underscore(y));
     assert_char_positions_equal(&char_positions[0], &char_position);
 }
 
@@ -204,17 +216,22 @@ fn assert_text_parsed_correctly(orientation: OrdinateOrientation, line_count: u3
         text.push('\n');
         text.push_str(RUST_WORD);
     }
-    let char_positions = parse(&RUST_WORD, orientation);
+    let char_positions = parse(RUST_WORD, orientation);
     assert_eq!(char_positions.len(), RUST_WORD.len() * line_count as usize);
     const LINE_HEIGHT: i32 = 80;
     for line in 0..line_count {
         let line = line as i32;
         let page_rects = page_rects_for_rust_word();
-        let screen_rects = screen_rects_for_rust_word([line * LINE_HEIGHT + ys[0],
-                                                       line * LINE_HEIGHT + ys[1],
-                                                       line * LINE_HEIGHT + ys[2],
-                                                       line * LINE_HEIGHT + ys[3]]);
-        let iter = page_rects.into_iter().zip(screen_rects.into_iter()).enumerate();
+        let screen_rects = screen_rects_for_rust_word([
+            line * LINE_HEIGHT + ys[0],
+            line * LINE_HEIGHT + ys[1],
+            line * LINE_HEIGHT + ys[2],
+            line * LINE_HEIGHT + ys[3],
+        ]);
+        let iter = page_rects
+            .into_iter()
+            .zip(screen_rects.into_iter())
+            .enumerate();
         for (i, (page_rect, screen_rect)) in iter {
             let actual = &char_positions[line as usize * RUST_WORD.len() + i];
             let expected = create_char_position(page_rect, screen_rect);
@@ -224,13 +241,18 @@ fn assert_text_parsed_correctly(orientation: OrdinateOrientation, line_count: u3
 }
 
 fn assert_letters_with_kerning_parsed_correctly(orientation: OrdinateOrientation, ys: [i32; 3]) {
-    let char_positions = parse(&YOU_WORD, orientation);
+    let char_positions = parse(YOU_WORD, orientation);
     assert_eq!(char_positions.len(), YOU_WORD.len());
     let page_rects = page_rects_for_you_word();
-    let screen_rects = vec![screen_rect_for_capital_y_in_you_word(ys[0]),
-                            screen_rect_for_o_in_you_word(ys[1]),
-                            screen_rect_for_u_in_you_word(ys[2])];
-    let iter = page_rects.into_iter().zip(screen_rects.into_iter()).enumerate();
+    let screen_rects = vec![
+        screen_rect_for_capital_y_in_you_word(ys[0]),
+        screen_rect_for_o_in_you_word(ys[1]),
+        screen_rect_for_u_in_you_word(ys[2]),
+    ];
+    let iter = page_rects
+        .into_iter()
+        .zip(screen_rects.into_iter())
+        .enumerate();
     for (i, (page_rect, screen_rect)) in iter {
         let actual = &char_positions[i];
         let expected = create_char_position(page_rect, screen_rect);
@@ -246,7 +268,7 @@ fn pages_parsed_correctly() {
 
 #[test]
 fn single_character_for_bottom_to_top_orientation_parsed_correctly() {
-    assert_single_character_parsed_correctly(OrdinateOrientation::BottomToTop, 7);
+    assert_single_character_parsed_correctly(OrdinateOrientation::BottomToTop, -16);
 }
 
 #[test]
@@ -261,7 +283,7 @@ fn multiple_lines_for_top_to_bottom_orientation_parsed_correctly() {
 
 #[test]
 fn multiple_lines_for_bottom_to_top_orientation_parsed_correctly() {
-    assert_text_parsed_correctly(OrdinateOrientation::BottomToTop, 1, [21, 20, 21, 20]);
+    assert_text_parsed_correctly(OrdinateOrientation::BottomToTop, 1, [-2, -3, -2, -3]);
 }
 
 #[test]
@@ -271,7 +293,7 @@ fn letters_with_kerning_for_top_to_bottom_orientation_parsed_correctly() {
 
 #[test]
 fn letters_with_kerning_for_bottom_to_top_orientation_parsed_correctly() {
-    assert_letters_with_kerning_parsed_correctly(OrdinateOrientation::BottomToTop, [21, 21, 20]);
+    assert_letters_with_kerning_parsed_correctly(OrdinateOrientation::BottomToTop, [-2, -2, -3]);
 }
 
 #[test]

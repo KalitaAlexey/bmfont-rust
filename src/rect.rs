@@ -11,10 +11,10 @@ pub struct Rect {
 
 impl Rect {
     pub fn max_x(&self) -> i32 {
-        self.x + self.width as i32 - 1
+        self.x + self.width as i32
     }
 
     pub fn max_y(&self) -> i32 {
-        self.y + self.height as i32 - 1
+        self.y + self.height as i32
     }
 }
