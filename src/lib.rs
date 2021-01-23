@@ -114,18 +114,33 @@ impl BMFont {
             base_height = utils::extract_component_value(components.next(), "common", "base")?;
         }
 
-        let mut pages = Vec::new();
+        let mut pages = Vec::with_capacity(sections.page_sections.len());
         for page_section in &sections.page_sections {
             pages.push(Page::new(page_section)?);
         }
-        let mut characters = Vec::new();
+
+        // Sort the characters while loading them so that lookup can be faster during parse
+        let mut characters: Vec<Char> = Vec::with_capacity(sections.char_sections.len());
         for char_section in &sections.char_sections {
-            characters.push(Char::new(char_section)?);
+            let char = Char::new(char_section)?;
+            if let Err(idx) = characters.binary_search_by(|probe| probe.id.cmp(&char.id)) {
+                characters.insert(idx, char);
+            }
         }
-        let mut kerning_values = Vec::new();
+
+        // Also sort kerning values for the same reason, but we allow duplicates
+        let mut kerning_values: Vec<KerningValue> =
+            Vec::with_capacity(sections.kerning_sections.len());
         for kerning_section in &sections.kerning_sections {
-            kerning_values.push(KerningValue::new(kerning_section)?);
+            let kerning = KerningValue::new(kerning_section)?;
+
+            match kerning_values
+                .binary_search_by(|probe| probe.first_char_id.cmp(&kerning.first_char_id))
+            {
+                Err(idx) | Ok(idx) => kerning_values.insert(idx, kerning),
+            }
         }
+
         Ok(BMFont {
             base_height,
             line_height,
@@ -172,7 +187,7 @@ impl BMFont {
         let mut y: i32 = 0;
         for line in lines {
             let mut x: i32 = 0;
-            let mut kerning_values: Vec<&KerningValue> = Vec::new();
+            let mut kerning_values = KerningIter::empty(&self.kerning_values);
             for character in line {
                 let kerning_value = kerning_values
                     .into_iter()
@@ -224,11 +239,18 @@ impl BMFont {
         }
     }
 
-    fn find_kerning_values(&self, first_char_id: u32) -> Vec<&KerningValue> {
-        self.kerning_values
-            .iter()
-            .filter(|k| k.first_char_id == first_char_id)
-            .collect()
+    fn find_kerning_values(&self, first_char_id: u32) -> KerningIter {
+        let needle = (first_char_id << 1) - 1;
+        let idx = self
+            .kerning_values
+            .binary_search_by(|probe| (probe.first_char_id << 1).cmp(&needle))
+            .unwrap_err();
+
+        KerningIter {
+            first_char_id,
+            idx,
+            values: &self.kerning_values,
+        }
     }
 
     fn parse_lines(&self, s: &str) -> ParseLines {
@@ -287,6 +309,37 @@ impl BMFont {
     }
 }
 
+struct KerningIter<'a> {
+    first_char_id: u32,
+    idx: usize,
+    values: &'a Vec<KerningValue>,
+}
+
+impl<'a> KerningIter<'a> {
+    fn empty(values: &'a Vec<KerningValue>) -> Self {
+        Self {
+            first_char_id: 0,
+            idx: values.len(),
+            values,
+        }
+    }
+}
+
+impl<'a> Iterator for KerningIter<'a> {
+    type Item = &'a KerningValue;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.values.get(self.idx) {
+            if value.first_char_id == self.first_char_id {
+                self.idx += 1;
+
+                return Some(value);
+            }
+        }
+        None
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PageIter<'a> {
     idx: usize,
@@ -295,10 +348,7 @@ pub struct PageIter<'a> {
 
 impl<'a> PageIter<'a> {
     fn new(pages: &'a Vec<Page>) -> Self {
-        Self {
-            idx: 0,
-            pages: &*pages,
-        }
+        Self { idx: 0, pages }
     }
 }
 
