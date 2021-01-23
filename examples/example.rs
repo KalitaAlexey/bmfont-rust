@@ -60,7 +60,11 @@ fn main() {
         OrdinateOrientation::BottomToTop,
     )
     .unwrap();
-    let char_positions = bmfont.parse("Hello\nmy\nfriend").unwrap();
+    let char_positions = bmfont.parse("Hello\nmy\nfriend");
+
+    #[cfg(feature = "parse-error")]
+    let char_positions = char_positions.unwrap();
+
     let shapes = char_positions.into_iter().map(|char_position| {
         let left_page_x = char_position.page_rect.x as f32 / image_dimensions.0 as f32;
         let right_page_x = char_position.page_rect.max_x() as f32 / image_dimensions.0 as f32;

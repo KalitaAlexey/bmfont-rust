@@ -21,6 +21,30 @@ use self::page::Page;
 use self::sections::Sections;
 use std::io::Read;
 
+/// Alias of either [`Result<Vec<CharPosition>, StringParseError>`] _or_ [`Vec<CharPosition>`],
+/// returned by [`BMFont::parse()`].
+///
+/// The output type depends on the value of the `parse-error` package feature.
+///
+/// **_NOTE:_** This documentation was generated _with_ the `parse-error` feature.
+#[cfg(feature = "parse-error")]
+pub type Parse<'a> = Result<Vec<CharPosition>, StringParseError>;
+
+/// Alias of either [`Result<Vec<CharPosition>, StringParseError>`] _or_ [`Vec<CharPosition>`],
+/// returned by [`BMFont::parse()`].
+///
+/// The output type depends on the value of the `parse-error` package feature.
+///
+/// **_NOTE:_** This documentation was generated _without_ the `parse-error` feature.
+#[cfg(not(feature = "parse-error"))]
+pub type Parse<'a> = Vec<CharPosition>;
+
+#[cfg(feature = "parse-error")]
+type ParseLines<'a> = Result<Vec<Vec<&'a Char>>, StringParseError>;
+
+#[cfg(not(feature = "parse-error"))]
+type ParseLines<'a> = Vec<Vec<&'a Char>>;
+
 #[derive(Clone, Debug)]
 pub struct CharPosition {
     pub page_rect: Rect,
@@ -138,8 +162,12 @@ impl BMFont {
         PageIter::new(&self.pages)
     }
 
-    pub fn parse(&self, s: &str) -> Result<Vec<CharPosition>, StringParseError> {
-        let lines = self.parse_lines(s)?;
+    pub fn parse(&self, s: &str) -> Parse {
+        let lines = self.parse_lines(s);
+
+        #[cfg(feature = "parse-error")]
+        let lines = lines?;
+
         let mut char_positions = Vec::new();
         let mut y: i32 = 0;
         for line in lines {
@@ -184,7 +212,16 @@ impl BMFont {
                 OrdinateOrientation::BottomToTop => y -= self.line_height as i32,
             }
         }
-        Ok(char_positions)
+
+        #[cfg(feature = "parse-error")]
+        {
+            Ok(char_positions)
+        }
+
+        #[cfg(not(feature = "parse-error"))]
+        {
+            char_positions
+        }
     }
 
     fn find_kerning_values(&self, first_char_id: u32) -> Vec<&KerningValue> {
@@ -194,11 +231,16 @@ impl BMFont {
             .collect()
     }
 
-    fn parse_lines(&self, s: &str) -> Result<Vec<Vec<&Char>>, StringParseError> {
+    fn parse_lines(&self, s: &str) -> ParseLines {
         let mut lines = Vec::new();
         let mut line = Vec::new();
+
+        #[cfg(feature = "parse-error")]
         let mut missing_characters = Vec::new();
+
+        #[cfg(feature = "parse-error")]
         let mut unsupported_characters = Vec::new();
+
         for c in s.chars() {
             if c == '\n' {
                 lines.push(line);
@@ -206,7 +248,9 @@ impl BMFont {
                 continue;
             }
             if c.len_utf16() != 1 {
+                #[cfg(feature = "parse-error")]
                 unsupported_characters.push(c);
+
                 continue;
             }
             let tmp_str = {
@@ -218,12 +262,17 @@ impl BMFont {
             if let Some(c) = self.characters.iter().find(|c| c.id == char_id) {
                 line.push(c);
             } else {
-                missing_characters.push(c);
+                #[cfg(feature = "parse-error")]
+                {
+                    missing_characters.push(c);
+                }
             }
         }
         if !line.is_empty() {
             lines.push(line);
         }
+
+        #[cfg(feature = "parse-error")]
         if missing_characters.is_empty() && unsupported_characters.is_empty() {
             Ok(lines)
         } else {
@@ -232,6 +281,9 @@ impl BMFont {
                 unsupported_characters,
             })
         }
+
+        #[cfg(not(feature = "parse-error"))]
+        lines
     }
 }
 

@@ -13,7 +13,12 @@ fn create_bmfont(ordinate_orientation: OrdinateOrientation) -> BMFont {
 }
 
 fn parse(s: &str, ordinate_orientation: OrdinateOrientation) -> Vec<CharPosition> {
-    create_bmfont(ordinate_orientation).parse(s).unwrap()
+    let font = create_bmfont(ordinate_orientation).parse(s);
+
+    #[cfg(feature = "parse-error")]
+    let font = font.unwrap();
+
+    font
 }
 
 fn assert_rect_equal(rect: &Rect, another_rect: &Rect) {
@@ -296,6 +301,7 @@ fn letters_with_kerning_for_bottom_to_top_orientation_parsed_correctly() {
     assert_letters_with_kerning_parsed_correctly(OrdinateOrientation::BottomToTop, [-2, -2, -3]);
 }
 
+#[cfg(feature = "parse-error")]
 #[test]
 fn missing_character_handled_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
@@ -305,6 +311,14 @@ fn missing_character_handled_correctly() {
     }
 }
 
+#[cfg(not(feature = "parse-error"))]
+#[test]
+fn missing_character_handled_correctly() {
+    let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
+    assert!(bmfont.parse("Ř").is_empty());
+}
+
+#[cfg(feature = "parse-error")]
 #[test]
 fn unsupported_character_handled_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
@@ -312,4 +326,11 @@ fn unsupported_character_handled_correctly() {
         Err(error) => assert_eq!(error.unsupported_characters, vec!['𐃌']),
         Ok(_) => panic!(),
     }
+}
+
+#[cfg(not(feature = "parse-error"))]
+#[test]
+fn unsupported_character_handled_correctly() {
+    let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
+    assert!(bmfont.parse("𐃌").is_empty());
 }
