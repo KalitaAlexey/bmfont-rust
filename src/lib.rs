@@ -34,6 +34,7 @@ pub enum OrdinateOrientation {
     TopToBottom,
 }
 
+/// Holds a decoded bitmap font defintion, including all character advance and kerning values.
 #[derive(Clone, Debug)]
 pub struct BMFont {
     base_height: u32,
@@ -45,6 +46,34 @@ pub struct BMFont {
 }
 
 impl BMFont {
+    /// Constructs a new [BMFont].
+    ///
+    /// ## Examples
+    ///
+    /// From a file:
+    ///
+    /// ```rust
+    /// # use bmfont::*;
+    /// # fn main() -> Result<(), Error> {
+    /// let file = std::fs::File::open("font.fnt")?;
+    /// let font = BMFont::new(file, OrdinateOrientation::TopToBottom)?;
+    /// assert_eq!(font.line_height(), 80);
+    /// #     Ok(())
+    /// # }
+    /// ```
+    ///
+    /// From a slice of bytes:
+    ///
+    /// ```rust
+    /// # use bmfont::*;
+    /// # fn main() -> Result<(), Error> {
+    /// # let my_font_bytes = std::fs::read("font.fnt")?;
+    /// let data = std::io::Cursor::new(my_font_bytes);
+    /// let font = BMFont::new(data, OrdinateOrientation::TopToBottom)?;
+    /// assert_eq!(font.line_height(), 80);
+    /// #     Ok(())
+    /// # }
+    /// ```
     pub fn new<R>(source: R, ordinate_orientation: OrdinateOrientation) -> Result<BMFont, Error>
     where
         R: Read,
