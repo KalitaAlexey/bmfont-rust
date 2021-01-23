@@ -263,7 +263,7 @@ fn assert_letters_with_kerning_parsed_correctly(orientation: OrdinateOrientation
 #[test]
 fn pages_parsed_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
-    assert_eq!(bmfont.pages(), vec![String::from("font.png")]);
+    assert_eq!(bmfont.pages().next(), Some("font.png"));
 }
 
 #[test]

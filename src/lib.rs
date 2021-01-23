@@ -92,8 +92,21 @@ impl BMFont {
         self.line_height
     }
 
-    pub fn pages(&self) -> Vec<String> {
-        self.pages.iter().map(|p| p.file.clone()).collect()
+    /// Returns an `Iterator` of font page bitmap filenames.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// # use bmfont::*;
+    /// # fn main() -> Result<(), Error> {
+    /// let file = std::fs::File::open("font.fnt")?;
+    /// let font = BMFont::new(file, OrdinateOrientation::TopToBottom)?;
+    /// assert_eq!(font.pages().next(), Some("font.png"));
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn pages(&self) -> impl Iterator<Item = &str> {
+        self.pages.iter().map(|p| p.file.as_str())
     }
 
     pub fn parse(&self, s: &str) -> Result<Vec<CharPosition>, StringParseError> {
