@@ -1,5 +1,6 @@
 [package]
 name = "bmfont"
+edition = "2018"
 version = "0.3.1"
 authors = ["kalita.alexey <kalita.alexey@outlook.com>"]
 description = "bitmap font config parser"
@@ -15,5 +16,10 @@ exclude = [
 ]
 
 [dev-dependencies]
+criterion = "0.3"
 glium = "^0.16.0"
 image = "^0.10.3"
+
+[[bench]]
+name = "parse"
+harness = false
