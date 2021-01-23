@@ -5,6 +5,8 @@ use std::str::FromStr;
 const SECTION_NAME: &str = "kerning";
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde_json", derive(Eq, PartialEq))]
 pub struct KerningValue {
     pub first_char_id: u32,
     pub second_char_id: u32,

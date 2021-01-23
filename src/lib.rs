@@ -1,5 +1,9 @@
 //! Parser for bitmap fonts
 
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
+
 mod char;
 mod config_parse_error;
 mod error;
@@ -29,12 +33,16 @@ pub struct CharPosition {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde_json", derive(Eq, PartialEq))]
 pub enum OrdinateOrientation {
     BottomToTop,
     TopToBottom,
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde_json", derive(Eq, PartialEq))]
 pub struct BMFont {
     base_height: u32,
     line_height: u32,

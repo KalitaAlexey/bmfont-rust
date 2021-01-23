@@ -5,6 +5,8 @@ use std::str::FromStr;
 const SECTION_NAME: &str = "char";
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde_json", derive(Eq, PartialEq))]
 pub struct Char {
     pub id: u32,
     pub x: u32,

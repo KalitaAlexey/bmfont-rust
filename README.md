@@ -1,9 +1,18 @@
 [![crates.io](https://img.shields.io/crates/v/bmfont.svg)](https://crates.io/crates/bmfont)
 
 # bmfont-rust
+
 Bitmap font config parser implemented in Rust
+
 # Contributing
+
 Library lacks documentation. I am not good at it. If you are then you are welcome to contribute new documentation.
+
+## Optional features
+
+* `serde` - Implementations of
+[`Serialize`](https://docs.serde.rs/serde/ser/trait.Serialize.html) and
+[`Deserialize`](https://docs.serde.rs/serde/de/trait.Deserialize.html).
 
 ## License
 

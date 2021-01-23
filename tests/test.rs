@@ -1,7 +1,10 @@
 extern crate bmfont;
 
+extern crate serde_json;
+
 use bmfont::{BMFont, CharPosition, OrdinateOrientation, Rect};
-use std::fs::File;
+use serde_json::{from_str, to_string_pretty};
+use std::fs::{read_to_string, File};
 
 const RUST_WORD: &'static str = "Rust";
 const UNDERSCORE_CHARACTER: &'static str = "_";
@@ -312,4 +315,15 @@ fn unsupported_character_handled_correctly() {
         Err(error) => assert_eq!(error.unsupported_characters, vec!['𐃌']),
         Ok(_) => panic!(),
     }
+}
+
+#[test]
+fn serde() {
+    let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
+    let serialized = to_string_pretty(&bmfont).unwrap();
+    let specimen = read_to_string("font.json").unwrap();
+    assert_eq!(specimen, serialized);
+
+    let deserialized = from_str(&serialized).unwrap();
+    assert_eq!(bmfont, deserialized);
 }
