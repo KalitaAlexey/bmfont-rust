@@ -134,8 +134,8 @@ impl BMFont {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn pages(&self) -> impl Iterator<Item = &str> {
-        self.pages.iter().map(|p| p.file.as_str())
+    pub fn pages(&self) -> PageIter {
+        PageIter::new(&self.pages)
     }
 
     pub fn parse(&self, s: &str) -> Result<Vec<CharPosition>, StringParseError> {
@@ -231,6 +231,34 @@ impl BMFont {
                 missing_characters,
                 unsupported_characters,
             })
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PageIter<'a> {
+    idx: usize,
+    pages: &'a Vec<Page>,
+}
+
+impl<'a> PageIter<'a> {
+    fn new(pages: &'a Vec<Page>) -> Self {
+        Self {
+            idx: 0,
+            pages: &*pages,
+        }
+    }
+}
+
+impl<'a> Iterator for PageIter<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(page) = self.pages.get(self.idx) {
+            self.idx += 1;
+            Some(page.file.as_str())
+        } else {
+            None
         }
     }
 }
