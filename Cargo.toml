@@ -25,3 +25,6 @@ serde_json = { version = "1", optional = true }
 bmfont = { path = ".", features = ["serde", "serde_json"] }
 glium = "^0.16.0"
 image = "^0.10.3"
+
+[package.metadata.docs.rs]
+features = ["serde"]
