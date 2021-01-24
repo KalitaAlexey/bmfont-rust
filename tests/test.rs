@@ -13,12 +13,13 @@ fn create_bmfont(ordinate_orientation: OrdinateOrientation) -> BMFont {
 }
 
 fn parse(s: &str, ordinate_orientation: OrdinateOrientation) -> Vec<CharPosition> {
-    let font = create_bmfont(ordinate_orientation).parse(s);
+    let font = create_bmfont(ordinate_orientation);
+    let parse = font.parse(s);
 
     #[cfg(feature = "parse-error")]
-    let font = font.unwrap();
+    let parse = parse.unwrap();
 
-    font
+    parse.collect()
 }
 
 fn assert_rect_equal(rect: &Rect, another_rect: &Rect) {
@@ -315,7 +316,7 @@ fn missing_character_handled_correctly() {
 #[test]
 fn missing_character_handled_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
-    assert!(bmfont.parse("Ř").is_empty());
+    assert_eq!(bmfont.parse("Ř").count(), 0);
 }
 
 #[cfg(feature = "parse-error")]
@@ -332,5 +333,5 @@ fn unsupported_character_handled_correctly() {
 #[test]
 fn unsupported_character_handled_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
-    assert!(bmfont.parse("𐃌").is_empty());
+    assert_eq!(bmfont.parse("𐃌").count(), 0);
 }

@@ -30,7 +30,7 @@ use std::str::Chars;
 ///
 /// **_NOTE:_** This documentation was generated _with_ the `parse-error` feature.
 #[cfg(feature = "parse-error")]
-pub type Parse<'a> = Result<Vec<CharPosition>, StringParseError>;
+pub type Parse<'a> = Result<ParseIter<'a>, StringParseError>;
 
 /// Alias of either [`Result<Vec<CharPosition>, StringParseError>`] _or_ [`Vec<CharPosition>`],
 /// returned by [`BMFont::parse()`].
@@ -39,7 +39,7 @@ pub type Parse<'a> = Result<Vec<CharPosition>, StringParseError>;
 ///
 /// **_NOTE:_** This documentation was generated _without_ the `parse-error` feature.
 #[cfg(not(feature = "parse-error"))]
-pub type Parse<'a> = Vec<CharPosition>;
+pub type Parse<'a> = ParseIter<'a>;
 
 #[cfg(feature = "parse-error")]
 type ParseLines<'a> = Result<LineIter<'a>, StringParseError>;
@@ -179,56 +179,13 @@ impl BMFont {
         PageIter::new(&self.pages)
     }
 
-    pub fn parse(&self, s: &str) -> Parse {
+    pub fn parse<'s>(&'s self, s: &'s str) -> Parse<'s> {
         let lines = self.parse_lines(s);
 
         #[cfg(feature = "parse-error")]
         let lines = lines?;
 
-        let mut char_positions = Vec::new();
-        let mut y: i32 = 0;
-        for line in lines {
-            let mut x: i32 = 0;
-            let mut kerning_values = KerningIter::empty(&self.kerning_values);
-            for character in line {
-                let kerning_value = kerning_values
-                    .into_iter()
-                    .find(|k| k.second_char_id == character.id)
-                    .map(|k| k.value)
-                    .unwrap_or(0);
-                let page_rect = Rect {
-                    x: character.x as i32,
-                    y: character.y as i32,
-                    width: character.width,
-                    height: character.height,
-                };
-                let screen_x = x + character.xoffset + kerning_value;
-                let screen_y = match self.ordinate_orientation {
-                    OrdinateOrientation::BottomToTop => {
-                        y + self.base_height as i32 - character.yoffset - character.height as i32
-                    }
-                    OrdinateOrientation::TopToBottom => y + character.yoffset,
-                };
-                let screen_rect = Rect {
-                    x: screen_x,
-                    y: screen_y,
-                    width: character.width,
-                    height: character.height,
-                };
-                let char_position = CharPosition {
-                    page_rect,
-                    screen_rect,
-                    page_index: character.page_index,
-                };
-                char_positions.push(char_position);
-                x += character.xadvance + kerning_value;
-                kerning_values = self.find_kerning_values(character.id);
-            }
-            match self.ordinate_orientation {
-                OrdinateOrientation::TopToBottom => y += self.line_height as i32,
-                OrdinateOrientation::BottomToTop => y -= self.line_height as i32,
-            }
-        }
+        let char_positions = ParseIter::new(self, lines);
 
         #[cfg(feature = "parse-error")]
         {
@@ -256,10 +213,9 @@ impl BMFont {
     }
 
     fn parse_lines<'a>(&'a self, s: &'a str) -> ParseLines<'a> {
-        let mut temp = [0u16; 2];
-
         #[cfg(feature = "parse-error")]
         {
+            let mut temp = [0u16; 2];
             let mut missing_characters: Option<Vec<char>> = None;
             let mut unsupported_characters: Option<Vec<char>> = None;
 
@@ -324,14 +280,9 @@ impl<'a> Iterator for CharIter<'a> {
         let lines = unsafe { self.0.as_mut().unwrap() };
 
         loop {
-            return match lines.text.peek() {
-                None => None,
-                Some('\n') => None,
-                Some(chr) if chr.len_utf16() != 1 => {
-                    lines.text.next().unwrap_or_default();
-
-                    continue;
-                }
+            return match lines.text.next() {
+                None | Some('\n') => None,
+                Some(chr) if chr.len_utf16() != 1 => continue,
                 Some(chr) => {
                     let mut temp = [0u16; 2];
                     chr.encode_utf16(&mut temp);
@@ -339,8 +290,6 @@ impl<'a> Iterator for CharIter<'a> {
                     let char_idx = lines
                         .characters
                         .binary_search_by(|probe| probe.id.cmp(&char_id));
-
-                    lines.text.next().unwrap_or_default();
 
                     #[cfg(not(feature = "parse-error"))]
                     if char_idx.is_err() {
@@ -399,14 +348,6 @@ impl<'a> Iterator for LineIter<'a> {
             Some(_) => Some(CharIter(self)),
             _ => None,
         }
-
-        // if let Some(value) = self.values.get(self.idx) {
-        //     if value.first_char_id == self.first_char_id {
-        //         self.idx += 1;
-
-        //         return Some(value);
-        //     }
-        // }
     }
 }
 
@@ -431,6 +372,116 @@ impl<'a> Iterator for PageIter<'a> {
             Some(page.file.as_str())
         } else {
             None
+        }
+    }
+}
+
+pub struct ParseIter<'a> {
+    font: &'a BMFont,
+    line: Option<ParseLineIter<'a>>,
+    lines: LineIter<'a>,
+    y: i32,
+}
+
+impl<'a> ParseIter<'a> {
+    fn new(font: &'a BMFont, lines: LineIter<'a>) -> Self {
+        Self {
+            font,
+            line: None,
+            lines,
+            y: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for ParseIter<'a> {
+    type Item = CharPosition;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.line.is_none() {
+            if let Some(chars) = self.lines.next() {
+                self.line = Some(ParseLineIter::new(&self.font, chars, self.y));
+            } else {
+                return None;
+            }
+        }
+
+        let line = self.line.as_mut().unwrap();
+        if let Some(char_position) = line.next() {
+            return Some(char_position);
+        }
+
+        self.line = None;
+        match self.font.ordinate_orientation {
+            OrdinateOrientation::TopToBottom => self.y += self.font.line_height as i32,
+            OrdinateOrientation::BottomToTop => self.y -= self.font.line_height as i32,
+        }
+
+        None
+    }
+}
+
+struct ParseLineIter<'a> {
+    font: &'a BMFont,
+    chars: CharIter<'a>,
+    kerning_values: KerningIter<'a>,
+    x: i32,
+    y: i32,
+}
+
+impl<'a> ParseLineIter<'a> {
+    fn new(font: &'a BMFont, chars: CharIter<'a>, y: i32) -> Self {
+        Self {
+            font,
+            chars,
+            kerning_values: KerningIter::empty(&font.kerning_values),
+            x: 0,
+            y,
+        }
+    }
+}
+
+impl<'a> Iterator for ParseLineIter<'a> {
+    type Item = CharPosition;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.chars.next() {
+            Some(char) => {
+                let kerning_value = self
+                    .kerning_values
+                    .find(|k| k.second_char_id == char.id)
+                    .map(|k| k.value)
+                    .unwrap_or(0);
+                let page_rect = Rect {
+                    x: char.x as i32,
+                    y: char.y as i32,
+                    width: char.width,
+                    height: char.height,
+                };
+                let screen_x = self.x + char.xoffset + kerning_value;
+                let screen_y = match self.font.ordinate_orientation {
+                    OrdinateOrientation::BottomToTop => {
+                        self.y + self.font.base_height as i32 - char.yoffset - char.height as i32
+                    }
+                    OrdinateOrientation::TopToBottom => self.y + char.yoffset,
+                };
+                let screen_rect = Rect {
+                    x: screen_x,
+                    y: screen_y,
+                    width: char.width,
+                    height: char.height,
+                };
+                let char_position = CharPosition {
+                    page_rect,
+                    screen_rect,
+                    page_index: char.page_index,
+                };
+                self.x += char.xadvance + kerning_value;
+                self.kerning_values = self.font.find_kerning_values(char.id);
+
+                Some(char_position)
+            }
+            _ => None,
         }
     }
 }
