@@ -74,7 +74,7 @@ pub struct BMFont {
 impl BMFont {
     /// Constructs a new [BMFont].
     ///
-    /// ## Examples
+    /// # Examples
     ///
     /// From a file:
     ///
@@ -164,7 +164,7 @@ impl BMFont {
 
     /// Returns an `Iterator` of font page bitmap filenames.
     ///
-    /// ## Examples
+    /// # Examples
     ///
     /// ```rust
     /// # use bmfont::*;
