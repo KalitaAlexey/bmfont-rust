@@ -220,7 +220,9 @@ impl BMFont {
             let mut unsupported_characters: Option<Vec<char>> = None;
 
             for c in s.chars() {
-                if c.len_utf16() != 1 {
+                if c == '\n' {
+                    continue;
+                } else if c.len_utf16() != 1 {
                     if let Some(vec) = unsupported_characters.as_mut() {
                         vec.push(c);
                     } else {
@@ -258,7 +260,7 @@ impl BMFont {
 
         let lines = LineIter {
             characters: &self.characters,
-            text: s.chars().peekable(),
+            text: Some(s.chars().peekable()),
         };
 
         #[cfg(feature = "parse-error")]
@@ -271,23 +273,24 @@ impl BMFont {
     }
 }
 
-struct CharIter<'a>(*mut LineIter<'a>);
+struct CharIter<'a> {
+    characters: &'a Vec<Char>,
+    text: Peekable<Chars<'a>>,
+}
 
 impl<'a> Iterator for CharIter<'a> {
     type Item = &'a Char;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let lines = unsafe { self.0.as_mut().unwrap() };
-
         loop {
-            return match lines.text.next() {
+            return match self.text.next() {
                 None | Some('\n') => None,
                 Some(chr) if chr.len_utf16() != 1 => continue,
                 Some(chr) => {
                     let mut temp = [0u16; 2];
                     chr.encode_utf16(&mut temp);
                     let char_id = temp[0] as u32;
-                    let char_idx = lines
+                    let char_idx = self
                         .characters
                         .binary_search_by(|probe| probe.id.cmp(&char_id));
 
@@ -297,7 +300,7 @@ impl<'a> Iterator for CharIter<'a> {
                     }
 
                     let char_idx = char_idx.unwrap();
-                    Some(&lines.characters[char_idx])
+                    Some(&self.characters[char_idx])
                 }
             };
         }
@@ -337,15 +340,18 @@ impl<'a> Iterator for KerningIter<'a> {
 
 struct LineIter<'a> {
     characters: &'a Vec<Char>,
-    text: Peekable<Chars<'a>>,
+    text: Option<Peekable<Chars<'a>>>,
 }
 
 impl<'a> Iterator for LineIter<'a> {
     type Item = CharIter<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.text.peek() {
-            Some(_) => Some(CharIter(self)),
+        match self.text.as_mut().unwrap().peek() {
+            Some(_) => Some(CharIter {
+                characters: &self.characters,
+                text: self.text.take().unwrap(),
+            }),
             _ => None,
         }
     }
@@ -398,26 +404,28 @@ impl<'a> Iterator for ParseIter<'a> {
     type Item = CharPosition;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.line.is_none() {
-            if let Some(chars) = self.lines.next() {
-                self.line = Some(ParseLineIter::new(&self.font, chars, self.y));
-            } else {
-                return None;
+        loop {
+            if self.line.is_none() {
+                if let Some(chars) = self.lines.next() {
+                    self.line = Some(ParseLineIter::new(&self.font, chars, self.y));
+                } else {
+                    return None;
+                }
+            }
+
+            let line = self.line.as_mut().unwrap();
+            if let Some(char_position) = line.next() {
+                return Some(char_position);
+            }
+
+            self.lines
+                .text
+                .replace(self.line.take().unwrap().chars.text);
+            match self.font.ordinate_orientation {
+                OrdinateOrientation::TopToBottom => self.y += self.font.line_height as i32,
+                OrdinateOrientation::BottomToTop => self.y -= self.font.line_height as i32,
             }
         }
-
-        let line = self.line.as_mut().unwrap();
-        if let Some(char_position) = line.next() {
-            return Some(char_position);
-        }
-
-        self.line = None;
-        match self.font.ordinate_orientation {
-            OrdinateOrientation::TopToBottom => self.y += self.font.line_height as i32,
-            OrdinateOrientation::BottomToTop => self.y -= self.font.line_height as i32,
-        }
-
-        None
     }
 }
 
