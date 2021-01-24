@@ -16,7 +16,13 @@ fn create_bmfont(ordinate_orientation: OrdinateOrientation) -> BMFont {
 }
 
 fn parse(s: &str, ordinate_orientation: OrdinateOrientation) -> Vec<CharPosition> {
-    create_bmfont(ordinate_orientation).parse(s).unwrap()
+    let font = create_bmfont(ordinate_orientation);
+    let parse = font.parse(s);
+
+    #[cfg(feature = "parse-error")]
+    let parse = parse.unwrap();
+
+    parse.collect()
 }
 
 fn assert_rect_equal(rect: &Rect, another_rect: &Rect) {
@@ -266,7 +272,7 @@ fn assert_letters_with_kerning_parsed_correctly(orientation: OrdinateOrientation
 #[test]
 fn pages_parsed_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
-    assert_eq!(bmfont.pages(), vec![String::from("font.png")]);
+    assert_eq!(bmfont.pages().next(), Some("font.png"));
 }
 
 #[test]
@@ -299,6 +305,7 @@ fn letters_with_kerning_for_bottom_to_top_orientation_parsed_correctly() {
     assert_letters_with_kerning_parsed_correctly(OrdinateOrientation::BottomToTop, [-2, -2, -3]);
 }
 
+#[cfg(feature = "parse-error")]
 #[test]
 fn missing_character_handled_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
@@ -308,6 +315,14 @@ fn missing_character_handled_correctly() {
     }
 }
 
+#[cfg(not(feature = "parse-error"))]
+#[test]
+fn missing_character_handled_correctly() {
+    let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
+    assert_eq!(bmfont.parse("Ř").count(), 0);
+}
+
+#[cfg(feature = "parse-error")]
 #[test]
 fn unsupported_character_handled_correctly() {
     let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
@@ -326,4 +341,11 @@ fn serde() {
 
     let deserialized = from_str(&serialized).unwrap();
     assert_eq!(bmfont, deserialized);
+}
+
+#[cfg(not(feature = "parse-error"))]
+#[test]
+fn unsupported_character_handled_correctly() {
+    let bmfont = create_bmfont(OrdinateOrientation::TopToBottom);
+    assert_eq!(bmfont.parse("𐃌").count(), 0);
 }
