@@ -1,0 +1,31 @@
+{
+  "base_height": 57,
+  "line_height": 80,
+  "characters": [
+    {
+      "id": 100,
+      "x": 2,
+      "y": 145,
+      "width": 35,
+      "height": 55,
+      "xoffset": 2,
+      "yoffset": 5,
+      "xadvance": 40,
+      "page_index": 0
+    }
+  ],
+  "kerning_values": [
+    {
+      "first_char_id": 100,
+      "second_char_id": 100,
+      "value": -4
+    }
+  ],
+  "pages": [
+    {
+      "id": 0,
+      "file": "font.png"
+    }
+  ],
+  "ordinate_orientation": "TopToBottom"
+}

@@ -1,7 +1,11 @@
 extern crate bmfont;
 
+extern crate serde_json;
+
 use bmfont::{BMFont, CharPosition, OrdinateOrientation, Rect};
-use std::fs::File;
+use serde_json::{from_str, to_string_pretty};
+use std::fs::{read_to_string, File};
+use std::io::Cursor;
 
 const RUST_WORD: &'static str = "Rust";
 const UNDERSCORE_CHARACTER: &'static str = "_";
@@ -10,6 +14,18 @@ const YOU_WORD: &'static str = "You";
 fn create_bmfont(ordinate_orientation: OrdinateOrientation) -> BMFont {
     let file = File::open("font.fnt").unwrap();
     BMFont::new(file, ordinate_orientation).unwrap()
+}
+
+fn create_simple_bmfont(ordinate_orientation: OrdinateOrientation) -> BMFont {
+    let simple = r#"info face=font size=72 bold=0 italic=0 charset= unicode= stretchH=100 smooth=1 aa=1 padding=2,2,2,2 spacing=0,0 outline=0
+common lineHeight=80 base=57 scaleW=361 scaleH=512 pages=1 packed=0
+page id=0 file="font.png"
+chars count=1
+char id=100 x=2 y=145 width=35 height=55 xoffset=2 yoffset=5 xadvance=40 page=0 chnl=15
+kernings count=1
+kerning first=100 second=100 amount=-4"#;
+
+    BMFont::new(Cursor::new(simple), ordinate_orientation).unwrap()
 }
 
 fn parse(s: &str, ordinate_orientation: OrdinateOrientation) -> Vec<CharPosition> {
@@ -327,6 +343,32 @@ fn unsupported_character_handled_correctly() {
         Err(error) => assert_eq!(error.unsupported_characters, vec!['𐃌']),
         Ok(_) => panic!(),
     }
+}
+
+#[test]
+fn serde() {
+    let bmfont = create_simple_bmfont(OrdinateOrientation::TopToBottom);
+    let serialized = to_string_pretty(&bmfont).unwrap().trim().to_owned();
+    let specimen = read_to_string("font.json").unwrap().trim().to_owned();
+
+    /* Useful while debugging large documents: Save it out and use a merge tool to view differences
+    if specimen != serialized {
+        std::fs::write("test-font.json", &serialized).unwrap();
+    } */
+
+    // Note: These additional assertions serve to (hopefully) make it more clear where it failed ..
+    assert_eq!(specimen.len(), serialized.len());
+    assert_eq!(specimen[..10], serialized[..10]);
+    assert_eq!(
+        specimen[specimen.len() - 10..],
+        serialized[serialized.len() - 10..]
+    );
+
+    // ... before this catch-all
+    assert_eq!(specimen, serialized);
+
+    let deserialized = from_str(&serialized).unwrap();
+    assert_eq!(bmfont, deserialized);
 }
 
 #[cfg(not(feature = "parse-error"))]
