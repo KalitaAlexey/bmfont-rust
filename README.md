@@ -5,6 +5,12 @@ Bitmap font config parser implemented in Rust
 # Contributing
 Library lacks documentation. I am not good at it. If you are then you are welcome to contribute new documentation.
 
+## Optional features
+
+* `parse-error` *(enabled by default)* -
+  [`BMFont::parse()`](https://docs.rs/bmfont-rust/latest/bmfont/struct.BMFont.html#method.parse)
+  returns missing and unsupported characters.
+
 ## License
 
 Licensed under either of
