@@ -13,6 +13,9 @@ exclude = [
     "tests/*",
     "*.fnt",
     "*.png",
+    "*.json",
+    "*.md",
+    "LICENSE*",
 ]
 
 [dependencies]
