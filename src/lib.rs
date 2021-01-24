@@ -256,52 +256,85 @@ impl BMFont {
     fn parse_lines(&self, s: &str) -> ParseLines {
         let mut lines = Vec::new();
         let mut line = Vec::new();
+        let mut temp = [0u16; 2];
 
         #[cfg(feature = "parse-error")]
-        let mut missing_characters = Vec::new();
+        {
+            let mut missing_characters: Option<Vec<char>> = None;
+            let mut unsupported_characters: Option<Vec<char>> = None;
 
-        #[cfg(feature = "parse-error")]
-        let mut unsupported_characters = Vec::new();
+            for c in s.chars() {
+                if c.len_utf16() != 1 {
+                    if let Some(vec) = unsupported_characters.as_mut() {
+                        vec.push(c);
+                    } else {
+                        unsupported_characters = Some(vec![c]);
+                    }
+
+                    continue;
+                }
+
+                c.encode_utf16(&mut temp);
+                let char_id = temp[0] as u32;
+
+                if self
+                    .characters
+                    .binary_search_by(|probe| probe.id.cmp(&char_id))
+                    .is_ok()
+                {
+                    continue;
+                }
+
+                if let Some(vec) = missing_characters.as_mut() {
+                    vec.push(c);
+                } else {
+                    missing_characters = Some(vec![c]);
+                }
+            }
+
+            if missing_characters.is_some() || unsupported_characters.is_some() {
+                return Err(StringParseError {
+                    missing_characters: missing_characters.unwrap_or_default(),
+                    unsupported_characters: unsupported_characters.unwrap_or_default(),
+                });
+            }
+        }
 
         for c in s.chars() {
+            #[cfg(not(feature = "parse-error"))]
+            if c.len_utf16() != 1 {
+                continue;
+            }
+
             if c == '\n' {
                 lines.push(line);
                 line = Vec::new();
                 continue;
             }
-            if c.len_utf16() != 1 {
-                #[cfg(feature = "parse-error")]
-                unsupported_characters.push(c);
 
+            c.encode_utf16(&mut temp);
+            let char_id = temp[0] as u32;
+
+            let char_idx = self
+                .characters
+                .binary_search_by(|probe| probe.id.cmp(&char_id));
+
+            #[cfg(not(feature = "parse-error"))]
+            if char_idx.is_err() {
                 continue;
             }
-            let tmp_str = {
-                let mut t = String::new();
-                t.push(c);
-                t
-            };
-            let char_id = tmp_str.encode_utf16().next().unwrap() as u32;
-            if let Some(c) = self.characters.iter().find(|c| c.id == char_id) {
-                line.push(c);
-            } else {
-                #[cfg(feature = "parse-error")]
-                {
-                    missing_characters.push(c);
-                }
-            }
+
+            let char_idx = char_idx.unwrap();
+            line.push(&self.characters[char_idx]);
         }
+
         if !line.is_empty() {
             lines.push(line);
         }
 
         #[cfg(feature = "parse-error")]
-        if missing_characters.is_empty() && unsupported_characters.is_empty() {
+        {
             Ok(lines)
-        } else {
-            Err(StringParseError {
-                missing_characters,
-                unsupported_characters,
-            })
         }
 
         #[cfg(not(feature = "parse-error"))]
