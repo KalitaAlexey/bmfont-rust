@@ -20,6 +20,8 @@ use self::kerning_value::KerningValue;
 use self::page::Page;
 use self::sections::Sections;
 use std::io::Read;
+use std::iter::Peekable;
+use std::str::Chars;
 
 /// Alias of either [`Result<Vec<CharPosition>, StringParseError>`] _or_ [`Vec<CharPosition>`],
 /// returned by [`BMFont::parse()`].
@@ -40,10 +42,10 @@ pub type Parse<'a> = Result<Vec<CharPosition>, StringParseError>;
 pub type Parse<'a> = Vec<CharPosition>;
 
 #[cfg(feature = "parse-error")]
-type ParseLines<'a> = Result<Vec<Vec<&'a Char>>, StringParseError>;
+type ParseLines<'a> = Result<LineIter<'a>, StringParseError>;
 
 #[cfg(not(feature = "parse-error"))]
-type ParseLines<'a> = Vec<Vec<&'a Char>>;
+type ParseLines<'a> = LineIter<'a>;
 
 #[derive(Clone, Debug)]
 pub struct CharPosition {
@@ -253,9 +255,7 @@ impl BMFont {
         }
     }
 
-    fn parse_lines(&self, s: &str) -> ParseLines {
-        let mut lines = Vec::new();
-        let mut line = Vec::new();
+    fn parse_lines<'a>(&'a self, s: &'a str) -> ParseLines<'a> {
         let mut temp = [0u16; 2];
 
         #[cfg(feature = "parse-error")]
@@ -300,37 +300,10 @@ impl BMFont {
             }
         }
 
-        for c in s.chars() {
-            #[cfg(not(feature = "parse-error"))]
-            if c.len_utf16() != 1 {
-                continue;
-            }
-
-            if c == '\n' {
-                lines.push(line);
-                line = Vec::new();
-                continue;
-            }
-
-            c.encode_utf16(&mut temp);
-            let char_id = temp[0] as u32;
-
-            let char_idx = self
-                .characters
-                .binary_search_by(|probe| probe.id.cmp(&char_id));
-
-            #[cfg(not(feature = "parse-error"))]
-            if char_idx.is_err() {
-                continue;
-            }
-
-            let char_idx = char_idx.unwrap();
-            line.push(&self.characters[char_idx]);
-        }
-
-        if !line.is_empty() {
-            lines.push(line);
-        }
+        let lines = LineIter {
+            characters: &self.characters,
+            text: s.chars().peekable(),
+        };
 
         #[cfg(feature = "parse-error")]
         {
@@ -339,6 +312,46 @@ impl BMFont {
 
         #[cfg(not(feature = "parse-error"))]
         lines
+    }
+}
+
+struct CharIter<'a>(*mut LineIter<'a>);
+
+impl<'a> Iterator for CharIter<'a> {
+    type Item = &'a Char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let lines = unsafe { self.0.as_mut().unwrap() };
+
+        loop {
+            return match lines.text.peek() {
+                None => None,
+                Some('\n') => None,
+                Some(chr) if chr.len_utf16() != 1 => {
+                    lines.text.next().unwrap_or_default();
+
+                    continue;
+                }
+                Some(chr) => {
+                    let mut temp = [0u16; 2];
+                    chr.encode_utf16(&mut temp);
+                    let char_id = temp[0] as u32;
+                    let char_idx = lines
+                        .characters
+                        .binary_search_by(|probe| probe.id.cmp(&char_id));
+
+                    lines.text.next().unwrap_or_default();
+
+                    #[cfg(not(feature = "parse-error"))]
+                    if char_idx.is_err() {
+                        continue;
+                    }
+
+                    let char_idx = char_idx.unwrap();
+                    Some(&lines.characters[char_idx])
+                }
+            };
+        }
     }
 }
 
@@ -370,6 +383,30 @@ impl<'a> Iterator for KerningIter<'a> {
             }
         }
         None
+    }
+}
+
+struct LineIter<'a> {
+    characters: &'a Vec<Char>,
+    text: Peekable<Chars<'a>>,
+}
+
+impl<'a> Iterator for LineIter<'a> {
+    type Item = CharIter<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.text.peek() {
+            Some(_) => Some(CharIter(self)),
+            _ => None,
+        }
+
+        // if let Some(value) = self.values.get(self.idx) {
+        //     if value.first_char_id == self.first_char_id {
+        //         self.idx += 1;
+
+        //         return Some(value);
+        //     }
+        // }
     }
 }
 
